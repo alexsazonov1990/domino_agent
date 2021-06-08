@@ -1,1 +1,82 @@
+//Creates database templates
 
+import lotus.domino.*;
+import java.util.ArrayList;
+
+public class JavaAgent extends AgentBase {
+	
+	 public void NotesMain() {
+		
+		 try {
+	          Session session = getSession();
+	          AgentContext agentContext = session.getAgentContext();
+	          String server1 = "scz2/MSCH22";   
+	          ArrayList<String>myArrayList = new ArrayList<String>();
+   
+	          //Добавим базы
+          
+          myArrayList.add("gp\\setup.nsf");
+          myArrayList.add("gp\\price.nsf");
+          myArrayList.add("gp\\treaty.nsf");
+          myArrayList.add("gp\\amb.nsf");
+          myArrayList.add("gp\\shedule.nsf");
+          myArrayList.add("gp\\gp.nsf");
+          myArrayList.add("gp\\sendinfo.nsf");
+          myArrayList.add("gp\\Attach.nsf");
+          myArrayList.add("gp\\manuals.nsf");
+          myArrayList.add("gp\\manager.nsf");
+          myArrayList.add("gp\\akm.nsf");
+          myArrayList.add("gp\\lab.nsf");
+          myArrayList.add("gp\\dict.nsf");
+          myArrayList.add("gp\\scan.nsf");          
+          myArrayList.add("gp\\mkb.nsf");
+          myArrayList.add("gp\\log.nsf");
+          myArrayList.add("gp\\lock.nsf");
+          myArrayList.add("gp\\bills.nsf");
+          myArrayList.add("gp\\arjservice.nsf");
+         //-----Архивные бд
+          myArrayList.add("Archive\\ArchChek.nsf");
+          myArrayList.add("Archive\\oldtalons.nsf");
+          myArrayList.add("Archive\\arc_shedule.nsf");
+          myArrayList.add("Archive\\bills_arc.nsf");
+          myArrayList.add("Archive\\scan_arc.nsf");
+         
+          System.out.println("СОЗДАНИЕ ШАБЛОНОВ БАЗ НАЧАТО");
+          
+         // myArrayList.remove(0); 
+        
+          for (int i = 0; i < myArrayList.size(); i++) {
+        	  
+          String database = myArrayList.get(i);
+        	
+          Database db = session.getDatabase(server1,database);
+          
+          if (db.isOpen()) {
+        	 
+          String title = db.getTitle(); // получим тайтл
+
+          String name = db.getFileName(); // получим имя файла
+          
+          DateTime dt = session.createDateTime("Today");
+          
+          dt.getDateOnly(); //Получим только дату "14.01.2020"
+           
+          String ntf = name.split(".nsf")[0] + ".ntf"; //обрежем nsf, добавим ntf
+         
+          String allSetup = dt + ntf;
+        
+          Database db2 = db.createCopy(server1,allSetup);
+       
+         System.out.println("СОЗДАНИЕ ШАБЛОНА ЗАВЕРШЕНО: " + db.getTitle() + "." + allSetup);
+        // db.recycle();
+         //dt.recycle();
+          };
+        }
+          System.out.println("СОЗДАНИЕ ШАБЛОНОВ ЗАВЕРШЕНО");
+          session.recycle();
+      } catch(Exception e) {
+          e.printStackTrace();
+         
+        }
+       }
+   }
