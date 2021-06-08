@@ -1,1 +1,197 @@
+//uploading to excel
 
+Sub Click(Source As Button)
+	Dim namebd As String
+	Dim fieldname(0 To 100) As String
+	Dim i,k As Integer
+	Dim session As New NotesSession
+	Dim db As NotesDatabase
+	Dim view As notesview	
+	Dim workspace As New NotesUIWorkspace
+	Dim collection As NotesDocumentCollection
+	Dim range As String	
+	Dim doc As NotesDocument
+	Dim uiview As NotesUIView
+	Dim subj(0 To 100) As Variant
+	Set db = session.CurrentDatabase
+	Set uiview = workspace.Currentview
+	Set view=uiview.view
+	Set doc=view.GetFirstDocument
+	Dim entr As NotesViewEntry
+	Dim nav As NotesViewNavigator
+	Dim level As String
+	Const xlRight = -4152 '(&HFFFFEFC8)
+	Const xlTop = -4160 '(&HFFFFEFC0)
+	Dim mas As Variant 
+	
+	Print "Экспорт в Excel ..."
+	
+	Set EWindow = CreateObject("Excel.Application")	
+	EWindow.Caption="Export"
+	Set WorkBooks=EWindow.Workbooks
+	WorkBooks.Add
+	Set ws=EWindow.Workbooks(1).Worksheets(1)
+	Call ws.Activate 
+	EWindow.ScreenUpdating = False
+	
+	'EWindow.visible = True	
+	
+	Forall itm In view.Columns
+		fieldname(i)=itm.Title
+		i=i+1		
+	End Forall
+	If i+65<=90 Then range="A1:"+Chr$(Cstr(i+65))+"1"
+	If (i+65>90 And i+65<116) Then range="A1:"+"A"+Chr$(Cstr(i+39))+"1"
+	'ws.Range("A1:IV65535").Clear	
+	'ws.Range(range).Value = fieldname
+	ws.range("C1").value = "Дата"
+	ws.range("D1").value = "Время приема"
+	ws.range("E1").value = "Удалено кассой"
+	ws.range("F1").value = "Цена"
+	ws.range("G1").value = "ЦКЦФУ"
+	ws.range("H1").value = "ЦФУ"
+	ws.range("I1").value = "ВрКод"
+	ws.range("J1").value = "КлКод"
+	ws.range("K1").value = "УслКод"
+	ws.range("L1").value = "Врач"
+	ws.range("M1").value = "Услуга"
+	ws.range("N1").value = "Договор"
+	ws.range("O1").value = "Тип договора"
+	ws.range("P1").value = "Прил"
+	ws.range("Q1").value = "Прог"
+	ws.range("R1").value = "Кол"
+	ws.range("S1").value = "Клиент"
+	ws.range("T1").value = "Направитель"
+	ws.range("U1").value = "КодД"
+	ws.range("V1").value = "Диаг"
+	ws.range("W1").value = "КодНазв"
+	ws.range("X1").value = "От кого"
+	ws.range("Y1").value = "Наименование ЦФУ"
+	ws.range("Z1").value = "Пол пациента"
+	ws.range("AA1").value = "Дата рождения пациента"
+	nstr=2	
+	
+	Set nav=view.createviewnav
+	Set entr=nav.GetFirst
+	
+	While (Not (entr Is Nothing)) 
+		k=0
+		
+		If Not (entr.IsDocument=True) Then      ' только для категорий
+			ws.range("A"+Cstr(nstr)+":E"+Cstr(nstr)).interior.colorindex = 41  '5 - синий
+			mas = entr.columnvalues
+			Forall itm In mas
+				subj(k)=itm
+				k=k+1
+				'ws.range("A"+Cstr(nstr)+":D"+Cstr(nstr)).interior.colorindex=9
+			End Forall
+		End If	' только для категорий			
+		
+		If (entr.IsDocument=True) Then ' только для доков
+			mas = entr.columnvalues
+			Forall itm In mas
+				If k<1 Then				
+					subj(k)=""
+				Else
+					subj(k)=itm
+				End If
+				k=k+1		
+			End Forall
+		End If	' только для доков			
+		
+		If i+65<=90 Then range="A"+Cstr(nstr)+":"+Chr$(Cstr(i+65))+Cstr(nstr)		
+		If (i+65>90 And i+65<116) Then range="A"+Cstr(nstr)+":"+"A"+Chr$(Cstr(i+39))+Cstr(nstr)		
+		
+		ws.Range(range).Value = subj
+		nstr=nstr+1
+		
+		For k=0 To i
+			subj(k)=""
+		Next
+		
+		Set entr=nav.GetNext(entr)		
+		
+	Wend
+	Print("OK")	
+	
+	ws.columns("A").Delete
+	
+	'Dim nor As Long, jopa As String 
+	'nor = ws.cells(1,1).CurrentRegion.Rows.Count + 3
+	
+	ws.pagesetup.TopMargin=5
+	ws.pagesetup.BottomMargin=25
+	ws.pagesetup.FooterMargin=5
+	ws.pagesetup.LeftMargin=5
+	ws.pagesetup.RightMargin=5
+	ws.pagesetup.Zoom=False
+	ws.pagesetup.FitToPagesWide=1
+	ws.pagesetup.FitToPagesTall=100
+	
+	ws.pagesetup.CenterFooter = "Страница &p из &n"	
+'Ширина ячейки	
+	ws.columns("A").columnwidth=1
+	ws.columns("B").columnwidth=15
+	ws.columns("C").columnwidth=20
+	ws.columns("D").columnwidth=20
+	ws.columns("E").columnwidth=10
+	ws.columns("F").columnwidth=10
+	ws.columns("G").columnwidth=20
+	ws.columns("H").columnwidth=10
+	ws.columns("I").columnwidth=10
+	ws.columns("J").columnwidth=10
+	ws.columns("K").columnwidth=30
+	ws.columns("L").columnwidth=20
+	ws.columns("M").columnwidth=20
+	ws.columns("N").columnwidth=20
+	ws.columns("O").columnwidth=20
+	ws.columns("P").columnwidth=20
+	ws.columns("Q").columnwidth=10
+	ws.columns("R").columnwidth=30
+	ws.columns("S").columnwidth=10
+	ws.columns("T").columnwidth=10
+	ws.columns("U").columnwidth=20
+	ws.columns("V").columnwidth=80
+	ws.columns("W").columnwidth=50
+	ws.columns("X").columnwidth=40
+	ws.columns("Y").columnwidth=20
+	ws.columns("Z").columnwidth=30
+	
+	'ws.columns("D").columnwidth=100
+	'ws.columns("E").columnwidth=100
+	
+'Объеденение в таблицу
+	
+	ws.range("A1:Z"+Cstr(nstr-1)).Borders.LineStyle=1
+	ws.range("A1:Z"+Cstr(nstr-1)).Font.Name="Arial"
+	ws.range("C1:C"+Cstr(nstr)).WrapText = True ' перенос в ячейке
+	ws.range("B1:C"+Cstr(nstr)).VerticalAlignment = xlTop
+	
+'заголовки столбцов
+	ws.range("A1:Z1").Font.bold=True
+	ws.range("A1:Z1").HorizontalAlignment = 3
+	
+' первый и второй столбец	
+	
+'столбец цен - рубли
+	ws.Range("D2:D"+Cstr(nstr)).Style = "Currency"
+	
+' форматирование по высоте в ячейке	
+	ws.range("D1:F"+Cstr(nstr)).VerticalAlignment = 1
+	
+' шапочка
+	
+	Messagebox "Экспорт в Excel завершен"
+	
+	'ewindow.visible=True	
+'--- added	
+	
+	'nor = ws.cells(1,1).CurrentRegion.Rows.Count + 3
+	'ws.cells(nor,1).value = jopa
+	'ws.cells(nor,1).font.bold = True
+	
+	EWindow.ScreenUpdating = True
+	EWindow.visible = True	
+	
+	'Messagebox "Экспорт в excel завершен"
+End Sub
