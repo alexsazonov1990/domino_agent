@@ -1,10 +1,10 @@
-cheking_cluster
+/*	
+the agent checks the difference of documents in the database on all servers in the cluster
+*/
+
 import lotus.domino.*;
 import java.util.Vector;
-/*	
-	1.собрать информацию о разнице документов в бд, расписания , прием , пациенты, архив услуг, договорной отдeл
-	2.Если разница превышает 20 документов, создать документы по форме в базе для отправки , для последующей обработки и отправки
-*/
+
 public class JavaAgent extends AgentBase {
 
   public void NotesMain() {
@@ -23,10 +23,7 @@ public class JavaAgent extends AgentBase {
       String databases1 = "gp\\shedule.nsf";
       String databases2 = "gp\\attach.nsf";
       String databases3 = "gp\\amb.nsf";
-      
-    
-       //Прием
-      
+   
       Database db = session.getDatabase(server1, database);
       
         String title = db.getTitle();
@@ -34,7 +31,7 @@ public class JavaAgent extends AgentBase {
         Database db2 = session.getDatabase(server2, database);
           String title2 = db2.getTitle();
     
-        //Расписание
+        
           
           Database db3 = session.getDatabase(server1, databases1);
           
@@ -43,7 +40,7 @@ public class JavaAgent extends AgentBase {
           Database db4 = session.getDatabase(server2, databases1);
             String title4 = db4.getTitle();
             
-        //Прикрепления
+        
             
             Database db5 = session.getDatabase(server1, databases2);
             
@@ -51,12 +48,7 @@ public class JavaAgent extends AgentBase {
               
             Database db6 = session.getDatabase(server2, databases2);
               String title6 = db6.getTitle();
-              
-       
-              //Кол-во документов в бд GetAllDocuments
-              
-       //Прием
-          
+           
   if (db.isOpen())
         System.out.println("Open");
         DocumentCollection dc = db.getAllDocuments();
@@ -67,9 +59,7 @@ public class JavaAgent extends AgentBase {
         DocumentCollection dc2 = db2.getAllDocuments();
         System.out.println("Cервер:" + server2 + "Database \"" +  title2+ "\" = " + dc2.getCount() + " Документов") ;
        
-         
-        
-        //Расписания
+     
         if (db3.isOpen())
             System.out.println("Open");
             DocumentCollection dc3 = db3.getAllDocuments();
@@ -79,9 +69,7 @@ public class JavaAgent extends AgentBase {
             System.out.println("Open");
             DocumentCollection dc4 = db4.getAllDocuments();
             System.out.println("Cервер:" + server2 + "Database \"" +  title4+ "\" = " + dc4.getCount() + " Документов") ;
-            
-        
-            //Прикрепления
+       
             
             if (db5.isOpen())
                 System.out.println("Open");
@@ -105,11 +93,7 @@ public class JavaAgent extends AgentBase {
 	Database dbS = agentContext.getCurrentDatabase();
 	View view = dbS.getView("ForSettings");
 	
-	//получим настроечный документ для отправки по всем адресатам
-	
 	Document doc2 = view.getFirstDocument(); 
-	
-	//Создадим документ для отправки
 
     Document doc = dbS.createDocument();
     doc.appendItemValue("Form", "SendInfoCluster");
