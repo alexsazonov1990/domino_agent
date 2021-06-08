@@ -1,1 +1,95 @@
+//the agent signs the EDS document
 
+Sub Click(Source As Button)
+	Dim workspace As New NotesUIWorkspace
+	Dim session As New NotesSession
+	Dim Signer As Variant ' кто подписывает
+	Dim Store As Variant ' хранилище сертификатов
+	Dim Certificates As Variant ' все сертификаты
+	Dim Certif As Variant ' поиск непросроч. сертификатов для выбора одного сертификата
+	Dim CertifFIO As Variant
+	Dim Build As Variant
+	Dim MySert As Variant ' один выбранный сертификат
+	Dim MySert1 As Variant ' один выбранный сертификат (Certificate object)
+	Dim privateKey As Variant
+	Dim uidoc As NotesUIDocument
+	Dim doc As NotesDocument
+	Dim ValidTo As Variant
+	Dim ValidFrom As Variant
+	Set uidoc = workspace.CurrentDocument
+	Set doc = uidoc.Document
+	
+	On Error Goto ErrHnd
+	
+	ProviderName$ = "Crypto-Pro GOST R 34.10-2001 Cryptographic Service Provider"
+	
+	Set Store = CreateObject("CAPICOM.Store")
+	
+	Build = Store.Open (2,"MY")
+	Set Certificates = Store.Certificates
+	Set Certif = Certificates.Find(9, Now)
+	Set MySert = Certif.Select("Выбор ЭЦП", "ВЫБЕРИТЕ СЕРТИФИКАТ") ' непросроченные
+	Print Cstr(CertifFio)
+	Set MySert1 = MySert.Item(1)
+	Dim info As String
+	Print "Сертификат  для " + (MySert1.SubjectName)
+	
+'Информация по сертификатам
+	
+	Set privateKey = MySert1.PrivateKey
+	Dim oSigner As Variant
+	Set oSigner = CreateObject("CAdESCOM.CPSigner") 'если не установлен плагин к криптопро здесь будет ошибка.
+	
+	oSigner.TSAAddress = "http://testca.cryptopro.ru/tsp/tsp.srf"
+	Set oSigner.Certificate = MySert1  '  Присвоили CAdESCOM сертификат из CAPICOM
+	
+	Dim oSignedData  As Variant 
+	Set oSignedData = CreateObject("CAdESCOM.CadesSignedData")
+	oSignedData.Content =  doc.GetItemValue("ctxtDiagKlin")(0) 'ЧТО подписываем, по факту сюда нужно пихать все поля на документе...
+	
+	sSignedData = oSignedData.SignCades(oSigner, 1, False)
+
+	Call doc.ReplaceItemValue("Signer2",Cstr(MySert1.SubjectName)) 'кто подписал
+	Call doc.ReplaceItemValue("SignStatus2","1")
+	Call doc.ReplaceItemValue("ValidFrom2",Cstr(MySert1.ValidFromDate))
+	Call doc.ReplaceItemValue("ValidTo2",Cstr(MySert1.ValidToDate))
+	Call doc.ReplaceItemValue("Cert2",Cstr(MySert1.SerialNumber))
+
+	Call doc.Save(True,False)
+	
+	'скопируем все поля с карты приема
+	Dim item As NotesItem
+	Dim ses As New NotesSession
+	Dim db2 As NotesDatabase 'бд Прием ЭЦП
+	
+	Dim docECP As NotesDocument
+	Dim signdate As String
+	
+	Set db2 = ses.GetDatabase(ses.CurrentDatabase.Server,"gp\ecp.nsf")
+	
+	Set doc = uidoc.Document
+	
+	Set docECP = New NotesDocument( db2 )
+	Call doc.CopyAllItems( docECP, True )
+	
+	Call docECP.ReplaceItemValue("SignDate2",Cstr(Now)) 'тянем дату подписи
+	Call docECP.ReplaceItemValue("Form","gpecp")
+	Call docECP.ReplaceItemValue("KriptoProHash2",Cstr(sSignedData))
+	
+	Call docECP.Save( True, True )
+	Msgbox "Карта приема подписана!"
+	
+	Exit Sub
+ErrHnd: 
+	If Erl = 26 Then
+		Msgbox "Ошибка!" + Chr(10) + " Необходимо установить КриптоПро ЭЦП Browser plug-in(cadescom)" + Chr(10) + "тел.: 400"
+		Print "Ошибка в строке " + Cstr(Erl) + Chr(13) + Cstr(Error)
+	End If
+	
+	If Erl <> 26 Then
+		Print "Ошибка в строке " + Cstr(Erl) + Chr(13) + Cstr(Error)
+	End If
+	
+	Exit Sub
+	
+End Sub
