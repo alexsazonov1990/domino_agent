@@ -1,0 +1,110 @@
+%REM
+syncs the average receipt with the services under the contract.
+%END REM
+
+Option Public
+Option Declare
+
+Sub Initialize		
+	Dim session As New NotesSession
+	Dim db As NotesDatabase
+	Dim view As NotesView
+	Dim viewTr As NotesView
+	Dim viewTr2 As NotesView
+	Dim doc As NotesDocument
+	Dim doc1 As NotesDocument
+	Dim itemName As NotesItem
+	Dim i As Long
+	Dim SummAvChek As Currency 'бабки считаем по среднему чеку
+	Dim SummAvChekAll As Currency
+	Dim count As Long
+	Dim docTr As NotesDocument
+	Dim docTr2 As NotesDocument
+	Dim key As String
+	Dim viewPersP As NotesView 'вьюха журнал приема день
+	Dim viewPersM As NotesView 'вьюха журнал приема месяц
+	
+	Print "Запущен агент по синхронизации услуг со средним чеком"	
+	Set db = session.CurrentDatabase
+	Set view = db.GetView("billsAll1") 'счета финдир алл 
+	Set viewTr = db.GetView("AgrDisc") 'вьюха с показателями по договорным услугам
+	Set viewTr2 = db.GetView("AgrDisc")'вьюха с показателями по договорным услугам
+	'Set viewPersP = db.GetView("ArjServicePersP")
+	'Set viewPersM = db.GetView("ArjServicePersM")
+	
+	Set doc = view.GetFirstDocument()
+	While Not(doc Is Nothing) 	
+		
+		'------------------------------------------------------------
+		'Set docTr2 = viewTr2.GetDocumentByKey(doc.NumberTreaty(0))
+		
+		'If docTr2.Disc(0) = CDbl(doc.Disс(0)) then 'попробовать...
+		'count = count + 1
+		'If count Mod 5000 = 0 Then Print "Пропустили услуг= " + CStr(count)
+			
+		'	else
+	
+'----------------------------------------------------------------------
+		If Cstr(doc.getitemvalue("AdvDisc")(0)) = "" & doc.advdisk(0) <> "" Then 'проверяем на отсутствие и пустое поле
+			
+			'проставим сервисную цену на платные и скидку 0
+			
+			If CStr(doc.NumberTreaty(0)) = "0" Then
+				doc.AdvDisk = doc.ServicePrice(0) 
+				doc.Disc = 0 '1.doc.Disc = "0"
+				Call doc.save(True,False)
+			End If
+			
+			'Проставим скидку на договорные
+			
+			If Cstr(doc.NumberTreaty(0)) <> "0" Then
+				
+				key = Cstr(doc.NumberTreaty(0))
+				
+				Set docTr = viewTr.GetDocumentByKey(doc.NumberTreaty(0))
+				
+				If Not (docTr Is Nothing) Then 
+					
+					If docTr.disc(0) = 0 Then
+						doc.AdvDisk = doc.ServicePrice(0)
+						doc.Disc = 0 '"0" '2.проставляем 0 если на договоре 0 процентов
+						Call doc.save(True,False)
+					End If
+					
+					If docTr.disc(0) <> 0 Then  'если скидка не равна 0
+						SummAvChek = Ccur(doc.ServicePrice(0)) * Ccur(docTr.disc(0)) \ 100   'docTr.disk(0) получим саму скидку
+						SummAvChekAll = doc.ServicePrice(0) - SummAvChek 
+						
+						'получим стоимость услуги за вычетом скидки 
+						
+						doc.AdvDisk = SummAvChekAll 
+						doc.Disc = docTr.disc(0) '3.Cstr(docTr.disc(0))
+						Call doc.save(True,False) 
+						
+					End If
+				Else
+				'если не нашли договор на вьюхе! проставим сервисную цену на услугу
+				'и скидку 0
+					'	Print "Не найден договор: " + doc.NumberTreaty(0) + ".В виде : " + viewTr.Name
+					doc.AdvDisk = doc.ServicePrice(0)
+				doc.Disc = 0 '4.doc.Disc = "0"
+				Call doc.save(True,False)
+				
+				End If
+				
+			Else 
+				
+			End If
+			
+			Set doc = view.GetNextDocument(doc)
+			
+			i = i + 1
+			
+		End If
+		If i Mod 5000 = 0 Then Print "Пройдено услуг= " + Cstr(i)
+	Wend
+	
+	Print "Синхронизировано услуг со средним чеком= " + Cstr(i)
+	Print "Завершена работа агента по синхронизации услуг со средним чеком"
+	
+End Sub
