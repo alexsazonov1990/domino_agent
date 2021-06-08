@@ -1,0 +1,300 @@
+Sub Click(Source As Button)
+	Dim w As New NotesUIWorkspace
+	Dim ViewTreaty As NotesView	
+	Dim TreatyDoc As NotesDocument
+	Dim sdocPril As NotesDocument
+	Dim session As New NotesSession
+	Dim ui As String
+	Dim Lname$,Fname$,Sname$,ProgStart$,ProgEnd$,ProgaStart$,ProgaEnd$,Payment$
+	Dim num As Variant
+	Dim v As NotesView
+	Dim ViewPrice As NotesView
+	Dim pdoc As NotesDocument 
+	Dim tn As String, tnr As String 
+	Dim TreatyNumber As String
+	Dim PrilNumber As String
+	Dim se As NotesViewEntry
+	Dim dbP As NotesDatabase
+	Dim DocP As NotesDocument
+	Dim docn As NotesDocument
+	Dim version$,ProgName$
+	Dim coll As NotesDocumentCollection
+	Dim uiv As NotesUIView
+	Dim uiw As New NotesUIWorkspace
+	Dim viewpr As NotesView
+	Dim b As String
+	Dim s As String
+	Dim comments As String
+	Dim FullNameProgAll As String
+	Dim EndDate As Variant
+	Dim ChekDoc As NotesDocument
+	Dim DbAmbChek As NotesDatabase
+	
+	Set CHEKUP = w.CurrentDocument 
+	Set dbTreaty = session.GetDatabase(session.CurrentDatabase.Server,"gp\treaty.nsf")
+	Set ViewTreaty = dbTreaty.GetView("Treatiesurist") 'ненадо во вьюху смотреть.
+	
+	Set v = dbTreaty.GetView("(FF)")
+	Call v.Refresh 
+	Set pdoc = v.GetFirstDocument()
+	tn = pdoc.GetItemValue("TreatyNumber")(0) 'получаем последний номер договора
+	tnr = Cstr(Clng(tn) + 1)
+	Stop
+	Set TreatyDoc = dbTreaty.CreateDocument
+	
+	TreatyDoc.form = "Treaty"
+	TreatyDoc.DogType = "1" 'тип договора физ лицо
+	
+	ui = treatyDoc.UniversalID
+	FULLFIO = CHEKUP.FieldGetText("FIO") 'тянем фио
+	If FULLFIO = "" Then
+		Msgbox "Не выбран пациент, для создания договора"
+		Exit Sub
+	End If
+	
+	t = Split(FULLFIO," " , 3)
+	For x = 0 To 2
+		Lname$ = t(0)
+		Fname$ = t(1)
+		Sname$ = t(2)
+	Next
+	
+	TreatyDoc.AmbSN = Trim$(Lname$) 'Имя 
+	TreatyDoc.AmbFN = Trim$(Fname$) 'Фамилия
+	TreatyDoc.AmbMN = Trim$(Sname$) 'Отчество
+	TreatyDoc.PassNumber = CHEKUP.FieldGetText("PassNumber")
+	TreatyDoc.PassWhom = CHEKUP.FieldGetText("PassWhom") 
+	TreatyDoc.AddressPropis = CHEKUP.FieldGetText("AddressPropis")
+	TreatyDoc.AnketaPhoneMob = CHEKUP.FieldGetText("AnketaPhoneMob")
+	TreatyDoc.AmbNumber = CHEKUP.FieldGetText("AmbCardNum") 'номер карты
+	TreatyDoc.AmbBth = Cdat(CHEKUP.FieldGetText("BirdDate")) 'дату рождения
+	TreatyDoc.PassWhen = CHEKUP.FieldGetText("PassWhen")
+	treatyDoc.Email = "@"
+	treatyDoc.ui = ui
+	TreatyDoc.kol = 1 'здесь надо получить значение счетчика для нумерации
+	TreatyDoc.TreatyNumber = tnr 'тянем номер договора
+	'TreatyDoc.TreatyManager = CHEKUP.FieldGetText("Manager") 'тянем менеджера
+	TreatyDoc.TreatyRegistrator = session.CommonUserName 'тянем регистратора
+	TreatyDoc.TreatyKind = "Депозит медуслуги" 'по  умолчнию, если необходимо изменение менять поле "вид договора"
+	TreatyDoc.DepositReg = "1" ' метка депозита
+	TreatyDoc.nds = "без НДС"
+	TreatyDoc.AmbNumber = CHEKUP.FieldGetText("AmbCardNum") 'Тянем номер амбулаторной карты на договор
+	TreatyDoc.opl = "Предоплата"
+	
+	Set doc = w.CurrentDocument.Document
+	
+	'Payment$ =  CHEKUP.GetFieldText("TreatyPaymentBefore")
+	'TreatyDoc.TreatyPaymentBefore = doc.TreatyPaymentBefore(0) 'сумма договора, проставляют сами 
+	'ProgStart = TreatyDoc.TreatyAssignDate(0)  'узнать тип
+	'ProgEnd = TreatyDoc.TreatyFinishDate(0)    'узнать тип
+	
+	
+	Call treatyDoc.save(True,True)
+	
+'2)СОЗДАЕМ ПРИЛОЖЕНИЕ - с физлицом
+	Set sdocPril = dbTreaty.CreateDocument
+	sdocPril.form = "pril"
+	sdocPril.ui = ui 'тянем юнид c договора
+	sdocPril.status = "1"  'действует
+	sdocPril.TreatyNumber = DogNumber ' тянем номер договора ' пока его нет...
+	sdocPril.komments = comm 
+	sdocPril.ProgName = prog 
+	sdocPril.DogType = "1" ' тянем тип договора в приложение | юр лицо, физ лицо и тд |
+	sdocPril.TreatyManager = TreatyDoc.treatyManager(0)
+	sdocPril.TreatyRegistrator = session.CommonUserName 
+	sdocPril.Treaty_Unid = ui
+	sdocPril.komments = TreatyDoc.komments(0) + " " + lName$ + " " + FName$ + " " + sName$ ' пишем в поле комментс ФИО + коммент с договора
+	sdocPril.TreatyRecom = TreatyDoc.TreatyRecom(0) 'рекламодатель 
+	sdocPril.сomments = TreatyDoc.FullName(0) ' тащим в комментс приложения поле из фул нэйм договора 
+	sdocPril.Lname = lName$
+	sdocPril.Fname = FName$
+	sdocPril.sName = sName$
+	sdocPril.Polis = Polis$ 
+	sdocPril.bDate = bDate$
+	sdocPril.kol = "1" ' кол-во прикрепленных 
+	sdocPril.TreatyNumber = tnr
+	sdocPril.TreatyBeginDate= Today
+	sdocPril.TreatyRegistrator = session.CommonUserName
+	
+'Формируем номер приложения
+
+	num = Clng(treatydoc.TreatyNumber(0))'получаем значение счетчика из трети док кол
+	If Num = 0 Then Num = 1 
+	sdocPril.Prilnumber =  Cstr(num) + Cstr("-") + Cstr(1)'записываем значение счетчика 'TreatyDoc.TreatyNumber(0) + "-" +
+	treatyDoc.kol = num 'записываем в третидок кол значение счетчика
+	Call treatyDoc.save(True,True) 'сохраняем форму чтобы проставилось последнее значение счетчика
+	pril = sdocPril.PrilNumber(0)
+	Call sdocpril.MakeResponse (TreatyDoc)
+	Call sdocPril.Save(True,True)
+	Call viewTreaty.Refresh 
+	
+	'добавляем в карту чекапа номер договора и приложения
+	
+	TreatyNumber = TreatyDoc.TreatyNumber(0)
+	PrilNumber = sdocPril.PrilNumber(0) 
+	
+	Call CHEKUP.FieldSetText("TreatyNumber",TreatyNumber)
+	Call CHEKUP.FieldSetText("PrilNumber",PrilNumber)
+	
+'3)СОЗДАЕМ ПРОГРАММУ ПО ШАБЛОНУ  
+'(копируем все поля с шаблона)
+	Dim ve As NotesViewEntry
+	Dim akcol As NotesDocumentCollection
+	
+	ProgName$ = CHEKUP.FieldGetText("Program") ' получаем имя программы
+	
+	Set dbPr = session.GetDatabase(session.CurrentDatabase.Server,"gp\price.nsf")
+	Set uiv = uiw.CurrentView  'uiv и uiw
+	Set ViewP = dbPR.GetView("(Chekup)") 
+	'Msgbox "Выберете шаблон для создания депозитной программы"
+	Set akcol = uiw.PickListCollection(3,True,dbPr.Server,"gp\price","pattern4","Выбор шаблона для создания депозитной программы","Выберите шаблон")
+	If akcol.Count = 0 Then 
+		Msgbox "Не выбран шаблон"
+		Exit Sub
+	Else 
+		Set docP  = akcol.GetFirstDocument() ' docP                                                                                             
+		Set docn = dbPR.Createdocument	 
+		Call docP.CopyAllItems(docN,True)
+		
+		'------------------------------------------------------------------Расчет даты
+		comment = docN.Comment(0) ' получили имя шаблона
+		Dim prog_start As New NotesDateTime("Today")
+		Dim prog_end As New NotesDateTime("Today")
+		
+		If docN.prog_action(0) = "" Then 'если пусто
+			Msgbox "Не проставлен срок действия на шаблоне программы, обратитесь в договорной отдел"
+		End If
+		
+		If DocN.prog_action(0) = "1" Then 'если пол года
+			Call prog_end.AdjustMonth( 6 )
+			Print "Начало программы: " + prog_start.GMTTime
+			Print "Окончание программы: " + prog_end.GMTTime
+			TreatyDoc.month = "2" '6 месяцев
+		End If
+		
+		If docN.prog_action(0) = "2" Then 'если год
+			Call prog_end.AdjustYear( 1 )
+			Print "Начало программы: " + prog_start.GMTTime
+			Print "Окончание программы: " + prog_end.GMTTime
+			TreatyDoc.month = "1"  '1 год
+		End If
+		
+		Call CHEKUP.FieldSetText("program",comment)
+		Call CHEKUP.FieldSetText("TreatyAssignDate",prog_start.GMTTime)
+		Call CHEKUP.FieldSetText("TreatyFinishDate",prog_end.GMTTime)
+		
+		Call CHEKUP.Refresh		
+
+		'получим скидку из программы
+		Dim deskProgram  As Currency
+		Dim PayLimit As Long
+		Dim PayLimitDesk As Long
+		Dim desc As Currency
+	
+		'-----------------------------------------------------
+		 'получили скидку к примеру 10 процентов
+		deskProgram = docn.Discount(0) 
+		Print "Cкидка:" + Cstr(deskProgram)
+		
+		'расчет множителя скидки
+		desc = (100 - deskProgram)/100
+		Print "Множитель скидки: " + Cstr(desc)
+		
+		PayLimit = docn.PayLimit(0) 'ограничение по программе
+		Print "Стоимость сплюсованная с величиной скидки" + Cstr(SummDog)
+
+		'Тянем данные скидку в на программу чекап
+		
+		Call CHEKUP.FieldSetText("DeskProgram",deskProgram) 'пишет на чекап
+		Call CHEKUP.FieldSetText("TreatyPaymentBefore",PayLimit  * desc)'пишем на чекап  '0.9
+		
+		docN.PayLimit = PayLimit 'пишем сумму со скидкой уже на программу
+		docn.deposit = "1" 'добавляем метку депозита на программу, что создана через механизм депозитов
+		
+		'------------------------------------------------------
+		
+		TreatyDoc.TreatyPaymentBefore = PayLimit * desc '0.9
+		
+		Print "Сумма на договор:" + Cstr(TreatyDoc.TreatyPaymentBefore(0))
+		'Пишем на договор
+		
+		Call treatyDoc.save(True,True) 'сохраням договор
+		
+		'Version$?--------Вот здесь необходимо  получить последнюю версию
+		
+		If docP.ProgramVersion(0) <> "0" Then	Messagebox "Выберите Шаблон программы !!!",16,"Ошибка" : Exit Sub			
+		If docP.valid(0) <> "1" Then Messagebox "Эта программа не продается !!!",16,"Ошибка" : 	Exit Sub
+		Set viewpr=dbPr.GetView("(versionL)")	'сортировка по номеру версии программы
+		Call viewpr.Refresh
+		Set ve = viewpr.GetEntryByKey(docP.ProgramName(0),True)
+		If Not ve Is Nothing Then
+			version$ = Cstr(ve.ColumnValues(1) + 1)
+		Else
+			version$=""
+		End If	
+		
+		b = Cstr(Clng(version$ - 1 ))
+		docn.ProgramVersion = docn.ProgramVersion(0)
+		docn.ProgramVersion = Cstr(Clng(b) + Clng(1))   
+		docn.Valid = "1"
+		docn.TreatyNumber = "" 'номер договора подтянуть
+		docn.PrilogenieNumber = "" 'номер приложения подтянуть 
+		docn.services = docP.services
+		docn.templ = 	session.UserName + "%" + docP.Stom(0) + "%" + Cstr(Ubound(docP.services2)) + "%" + docP.UniversalID ' "%" + uiw.CurrentView.ViewName ???
+		docn.template_unid = docP.UniversalID  'тянем unid
+		docn.NewAtach = Cstr(Today) 'чтобы можно было идентифицировать как новое прикрепление
+		docn.TreatyNumber = TreatyNumber  'тянем номер договора.
+		docn.PrilogenieNumber = PrilNumber 'тянем номер приложения 
+		
+	'Блок дат даты из договора, программы, приложения 
+		TreatyDoc.TreatyAssignDate = Cdat(prog_start.GMTTime)  'дата начала договора  'вот эти даты
+		TreatyDoc.TreatyFinishDate = Cdat(prog_end.GMTTime)   'дата окончания договора  
+		sdocPril.ProgStart = Cdat(prog_start.GMTTime) 'дата начала действия версии
+		sdocPril.ProgEnd = Cdat(prog_end.GMTTime) 'дата окончания действия версии
+		TreatyDoc.TreatyBeginDate = Today
+		docn.BeginDate = Cdat(prog_start.GMTTime)  '14.01.2021
+		docn.EndDate = Cdat(prog_end.GMTTime)
+		
+ 		'Удаляем слово "Шаблон"
+		comments = lName$ + " " + FName$ +" "+sName$ 'получаем ФИО пациента в комментс
+		s = docn.comment(0) + ""       's
+		FullNameProg = Replace(s,"ШАБЛОН","",,,5) 'поправил, не учитывал регистр слова ШАБЛОН  'FullNameProg  получить
+		docn.comment = comments + FullNameProg + strax$ 'пишем в поле коммент название программы  
+		docn.Straxovchik = strax$ 'страховщик ну тут не нужен ну пусть будет пустым
+		docn.TreatyRegistrator = session.CommonUserName		
+		docn.TreatyManager = session.CommonUserName	
+		Call docn.Save(True,False)
+		FullNameProgAll = docn.comment(0)
+		
+		'получаем запись на договор.
+		Dim CommentDog As String
+		CommentDog = "Договор" + FullNameProg
+		
+		'Добавляем в договор
+		treatydoc.TreatySubjekt = CommentDog   
+		treatydoc.komments = CommentDog 
+		sdocPril.comments = lName$ + " " + FName$ +" "+sName$ + " Договор " + FullNameProg   ' "на сумму " + Cstr(treatydoc.TreatyPaymentBefore(0))
+		'Добавляем в договор программу - Chekup
+		
+		sdocpril.Program = docn.ProgramName(0) + "v" + docn.ProgramVersion(0)
+		sdocpril.TreatyManager = session.CommonUserName
+		treatydoc.TreatyManager = session.CommonUserName
+		sdocpril.Treatykind = "Депозит медуслуги"
+		
+		Call treatydoc.Save(True,False)		
+		Call sdocPril.Save(True,False)
+		Call CHEKUP.FieldSetText("Deposit","1")
+		
+		Dim res12  As String 
+		res12 =	"ДОГОВОР НА ДЕПОЗИТ СОЗДАН: " + " " + Cstr(TreatyNumber) + Chr(13) & _
+		"ПРИЛОЖЕНИЕ НА ДЕПОЗИТ СОЗДАНО: " +  " "+  Cstr(PrilNumber) + Chr(13) & _ 
+		"ПРОГРАММА НА ДЕПОЗИТ СОЗДАНА: " +  Cstr(FullNameProgAll) + Chr(13) & _
+		"ВЕРСИЯ ПРОГРАММЫ: " +  " "+  version$ 
+		
+		Msgbox res12
+		
+	End If
+	Call chekup.save
+	Print "Дата создания: "  + Cstr(treatydoc.Created)
+	
+End Sub
