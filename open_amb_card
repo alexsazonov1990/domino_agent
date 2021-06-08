@@ -1,0 +1,37 @@
+Sub Click(Source As Button)
+	
+	On Error Goto ErrHnd
+	Dim ws As New NotesUIWorkspace, ss As New NotesSession, db As NotesDatabase, dbp As NotesDatabase
+	Dim docAk As NotesDocument, prs As NotesDocument, prscl As NotesDocumentCollection', nam As New NotesName(ss.Username)
+	Dim viewS As NotesView, tmpProgName$, prog$, prilDog As NotesDocument, treatyDoc As NotesDocument
+	Dim key As String
+	Dim session As New NotesSession
+	
+	'3'. прикрепляем одаряемого
+	FIO$ = ws.currentdocument.document.FIO(0)
+	If FIO$ = "" Then
+		Msgbox "Не выбрана амбулаторная карта пациента!"
+		Exit Sub
+	End If
+	birthdate$ = Cstr(ws.currentdocument.document.BirdDate(0))
+	key = Replace(FIO$," ","",,,5)+Cstr(Cdat(Datevalue(birthdate$)))
+	
+	Print(key)
+	Set db = ss.currentdatabase	
+	Set dbp= session.GetDatabase(ss.CurrentDatabase.Server,"gp\amb.nsf")
+'Set dbp = getDB2018(db, "price.nsf")
+	'найти по ключу
+	Set prs = dbp.getView("(AK)").getDocumentByKey(key, True)
+	'	Call LockEditionDoc( prs, EditPermit, "sub makeVersionPril" )
+	If prs Is Nothing Then
+		Msgbox "Не выбрана амбулаторная карта для создания депозита!" ' + treatynumber$
+	Else
+		Call ws.editDocument(True, prs)	
+	End If
+	
+	Exit Sub
+ErrHnd:  
+	Msgbox "Ошибка в строке " + Cstr(Erl)
+	If Not docAk Is Nothing Then Call UnlockEdition(docAk.Universalid)
+	Call errh20(" sub openProgramVersion ", Nothing) ', "Ошибка в строке " + CStr(Erl))
+	Exit Sub
