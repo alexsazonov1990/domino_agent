@@ -1,0 +1,50 @@
+//checks whether the service is included in the program, if the service is included in the program, it receives a discount percentage
+
+Function DescMoney( ak_doc, servCode) As Double
+	On Error GoTo ErrHnd 
+	Dim dbTr As  NotesDatabase,dbtr1 As NotesDatabase, vByNumber As NotesView, treaty As NotesDocument, sess As New  NotesSession, it As NotesItem
+	'03.12.2018
+	Dim  descMoneyChek As NotesItem, t As Boolean, cont As Boolean,qFlagIn As Boolean,qFlag As Boolean
+	Dim services As NotesView
+	Dim it2 As NotesItem
+	Dim service As NotesForm
+	cont = getSoftStatus("DescMoney")	
+	If cont Then Exit Function
+	qFlag = false'True
+	qflagIn = True
+	Set dbTr = sess.GetDatabase(sess.CurrentDatabase.Server, "gp\treaty.nsf")
+	Set dbtr1 = sess.Getdatabase(sess.CurrentDatabase.Server, "gp\price.nsf")
+	Set vByNumber = dbTr.GetView("bynumber")'смотрим во вьюху byNumber
+	Set it = ak_doc.getfirstItem("TreatyNumber")
+	ForAll v In it.values
+		Set treaty =  vByNumber.GetDocumentByKey(v, True)'находит документ по treatynumber			
+		'исправлено 05.07.2019 Проверка поля DescMoneyChekIn, если услуга входит в поле, то по ней считается скидка.
+		If Not treaty Is Nothing Then
+			If CStr(treaty.getitemvalue("DescMoneyChek")(0)) = "" Then 'проверяем на отсутствие и пустое поле
+			End If
+			If treaty.Hasitem("DescMoneyChek") Then
+				Set descMoneyChek = treaty.getfirstItem("DescMoneyChek")
+				qFlag = descMoneyChek.Contains(servCode) 'получаем на куфлаг
+				'должен быть true
+			End If
+			If CStr(treaty.DescMoney(0)) = "" Then
+				
+			Else
+				If qFlag = True Then DescMoney = treaty.DescMoney(0)
+				
+			End If
+			
+			If CStr(treaty.DescMoneyChek(0)) = ""  And CStr(treaty.DescMoney(0)) <> "" Then 
+				
+				DescMoney = treaty.DescMoney(0)		
+			End If
+			Exit ForAll
+			Print " treaty Is Nothing: " + v
+		End If
+	End ForAll
+	Print "DescMoney: " + CStr(DescMoney) 
+	Exit Function
+ErrHnd:  
+	Call errh20(" Function DescMoney ", Nothing)
+	Exit Function
+End Function
