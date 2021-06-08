@@ -1,0 +1,28 @@
+'open a patient treaty
+
+Sub Click(Source As Button)
+	
+	On Error Goto ErrHnd
+	Dim ws As New NotesUIWorkspace, ss As New NotesSession, db As NotesDatabase, dbp As NotesDatabase
+	Dim docAk As NotesDocument, prs As NotesDocument, prscl As NotesDocumentCollection', nam As New NotesName(ss.Username)
+	Dim viewS As NotesView, tmpProgName$, prog$, prilDog As NotesDocument, treatyDoc As NotesDocument
+	Dim session As New NotesSession
+	'3'. прикрепляем одаряемого
+	treatynumber$ = ws.currentdocument.document.treatynumber(0)
+	Set db = ss.currentdatabase	
+	Set dbp= session.GetDatabase(ss.CurrentDatabase.Server,"gp\treaty.nsf")
+	'найти по ключу
+	Set prs = dbp.getView("bynumber").getDocumentByKey(treatynumber$, True)
+	If prs Is Nothing Then
+		Msgbox "Договор еще не создан! " +treatynumber$
+	Else
+		Call ws.EditDocument(False,prs)
+	End If
+	Exit Sub
+ErrHnd:  
+	Msgbox "Ошибка в строке " + Cstr(Erl)
+	If Not docAk Is Nothing Then Call UnlockEdition(docAk.Universalid)
+	Call errh20(" sub openProgramVersion ", Nothing) ', "Ошибка в строке " + CStr(Erl))
+	Exit Sub
+  
+End Sub
