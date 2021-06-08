@@ -1,1 +1,124 @@
 
+// Sending information about erroneous coupons
+
+Option Public
+Option Declare
+Use "errh2"
+Sub Initialize
+	
+	Dim s As New NotesSession, agent As NotesAgent, col As NotesDocumentCollection
+	Dim infotalons As NotesDocument
+	Dim rtbody As NotesRichTextItem
+	Dim principal As String
+	Dim db As NotesDatabase
+	Dim dbInfoSet As NotesDatabase
+	Set db = s.GetDatabase("scz4","gp\sendinfo.nsf")
+	Dim session As New NotesSession
+	Dim TreatyManager As String
+	Dim num As Variant
+	
+	Dim dbInfo As NotesDatabase
+	Dim TreatyDoc As NotesDocument
+	Dim chekupView As NotesView
+	Dim TalonsView As NotesView
+	Dim SettingsView As NotesView
+	Dim TreatyNumber As String
+	Dim PaymentDate As String
+	Dim PaymentSum As Long
+	Dim PayAmbFio As String
+	Dim Ambnumber As String
+	Dim talons As NotesDocument
+	Dim skey As Variant
+	Dim TalonCol As NotesDocumentCollection 
+	Dim tot As Integer
+	Dim i As Integer
+	Dim DocFio As String
+	Dim datetime As String
+	Dim Fio As String
+	Dim doc As NotesDocument
+	Dim rtitem As NotesRichTextitem
+	Dim all As String
+	Dim adress As String
+	Dim itemh As NotesItem
+	Dim sendForm As NotesDocument
+	'добавим
+	Dim myArr( 0 To 3) As String 'массив для отправки по почте
+	Dim cole As NotesViewEntryCollection
+	Dim doce As NotesViewEntry
+	Dim v As NotesView 
+	Dim cnt As Long
+	
+	Set sendForm = session.Currentdatabase.Createdocument()
+	Set rtitem = New NotesRichTextItem(SendForm, "Body")
+	skey = DateValue(Today)   '(Today)"19.10.2018"
+	
+	Set dbInfo = session.GetDatabase(session.CurrentDatabase.Server,"gp\sendinfo.nsf")
+	Set TalonsView = dbInfo.GetView("(talons)") 
+	Set talonCol = TalonsView.GetAllDocumentsByKey(skey,False) 'кол талонов
+	tot = taloncol.Count
+	
+	'получим адрес из настроечного документа
+	
+	Set dbInfoSet = session.GetDatabase(session.CurrentDatabase.Server,"gp\sendinfo.nsf")
+	Set SettingsView = dbInfoSet.GetView("ForSettings") 
+	Set doc = SettingsView.GetFirstDocument 'кол талонов
+	adress = doc.SendAdress(0)
+	
+	If adress = "" Then
+		Print "Не задан адресс для отправки информации о талонах"
+	End If
+		
+	If tot = 0 Then
+		Print "Нет помеченных талонов для отправки"
+		End
+	End If 
+	Print "Всего талонов помеченных как ошибочные: " CStr(tot) 
+	
+	'массив для отправки на адреса
+	myArr( 0 ) = doc.SendAdress(0)'первый получатель 
+	myArr( 1 ) = doc.SendAdress1(0) 'второй получатель
+	myArr( 2 ) = doc.SendAdress2(0) 'третий получатель
+	myArr( 3 ) = doc.SendAdress3(0) 'четвертый получатель
+	
+	Dim Modifed As string
+	Dim a As string
+	Dim item As notesItem
+	
+	For i = 1 To tot
+		Set talons = taloncol.GetNthDocument(i)
+		docFio = talons.doctor(0)
+		Modifed = Replace(talons.FioComment(0)," Ошибочный талон. Не записывать ","",,,5)
+		datetime = talons.Datime(0)
+		Fio = talons.Fio(0)
+		all = talons.Status(0) + " | " + "Доктор: " + docFio + ".Тел: " + talons.phone(0) + "|" + datetime + " | Время приема: " + talons.raspis(0) ' чтобы формировать статистику.
+		rtitem.Appendtext(all + " | Когда и кем изменен: " + Modifed)  '" .ссылка: " + talons.Notesurl)
+		talons.EmailStatus = "1" 'проставляем что отправлено
+		Call rtitem.AddNewline(2)
+		Call talons.Save(True,False) 'сохраняем талон
+		
+	Next
+	
+	sendForm.Subject = "Изменен статус талонов,за " + cstr(Today) + ".Cмотрите письмо(Ошибочные талоны)"
+	Principal = "scz"  'analis
+	sendForm.Principal = Principal
+	sendForm.InetFrom = principal ' 2
+	sendForm.SMTPOriginator = Principal
+	sendForm.ReplyTo = Principal	
+	sendForm.RouteServers = "scz4/msch22"
+	sendForm.From = "scz" '1
+	sendForm.InetFrom = "Ваш адрес" '1
+	sendForm.INetSendTo =  "."
+	sendForm.tmpDisplayFrom_Preview = Principal' + "@.ru"
+	sendForm.Sender = Principal
+	sendForm.RouteServers = "scz4/msch22"
+	sendForm.Importance = "1"
+	sendForm.RouterUseFromAsSMTPOriginator=1
+	sendForm.SMTPOriginator = Principal
+	sendForm.DisplaySent = "Post agent"
+	sendForm.qSent = "1"
+	
+	Call sendForm.Send(False,myArr)
+	Call sendForm.Save(True,False) 
+	
+	Print "Отправка информации о талонах завершена на адреса: " + doc.SendAdress(0)+ "," + doc.SendAdress1(0) + "," + doc.SendAdress2(0) + "," + doc.SendAdress3(0)
+End Sub
