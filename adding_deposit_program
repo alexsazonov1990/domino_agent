@@ -1,0 +1,96 @@
+// the agent adds the deposit program to the patient's card
+
+Sub Click(Source As Button)
+	On Error Goto err_handle
+	Dim pdb As NotesDatabase				'прайс
+	Dim vp As NotesView							'version 
+	Dim col As NotesDocumentCollection
+	Dim pdoc As NotesDocument 
+	Dim pit As NotesItem, pos As Variant, prog As String 
+	Dim pgm As Variant, t As String, g As String, v As String, b As Variant, e As Variant, c As String, i As Integer 
+	Dim p1 As Variant, t1 As Variant, g1 As Variant, v1 As Variant, b1 As Variant, e1 As Variant, c1 As Variant 
+	Set pdb = GetDB(db, "price.nsf")
+	Set vp= pdb.getview("(versiona)")
+	
+	Set col = uiw.PickListCollection(4,True,pdb.Server,pdb.FilePath,"pattern5", _ 
+	"Перечень депозитных программ","Выберите программу:")
+	If col.Count  = 0 Then 
+		Print "Отмена операции"
+		Exit Sub
+	End If
+	uidoc.AutoReload = False
+	'сохраняем массивы
+	p1 = doc.Program
+	t1 = doc.TreatyNumber
+	g1 = doc.PrilogenieNumber
+	v1 = doc.Valid
+	b1 = doc.BeginDate
+	e1 = doc.EndDate
+	c1 = doc.Comment
+	
+	pgm = doc.Program
+	For i = 1 To col.Count 
+		Set pdoc = col.GetNthDocument(i)
+		prog = pdoc.ProgramName(0) & "v" & pdoc.ProgramVersion(0)
+		pos = Arraygetindex(pgm,prog)
+		If Not Isnull(pos) Then
+			Print "Программа " prog " уже джобавлена в список"
+		Else
+			If Datevalue(Today()) > Datevalue(pdoc.EndDate(0)) Then
+				Msgbox "ЗАКОНЧИЛАСЬ: " + prog + " Дата завершения " + Cstr(pdoc.EndDate(0))	
+			Elseif pdoc.BeginDate(0) = "" Or pdoc.EndDate(0) = "" Then
+				Msgbox "Нет даты: "  + prog
+			Elseif pdoc.TreatyNumber(0) = "" Or pdoc.PrilogenieNumber(0) = "" Then
+				Msgbox "Нет номера договора или приложения: "  + prog
+			Else
+				t = pdoc.TreatyNumber(0)
+				g = pdoc.PrilogenieNumber(0)
+				v = pdoc.valid(0)
+				b = Datevalue(pdoc.BeginDate(0))
+				e = Datevalue(pdoc.EndDate(0))
+				c = pdoc.comment(0)
+				
+				'сохраняем массивы
+				p1 = doc.Program
+				t1 = doc.TreatyNumber
+				g1 = doc.PrilogenieNumber
+				v1 = doc.Valid
+				b1 = doc.BeginDate
+				e1 = doc.EndDate
+				c1 = doc.Comment
+				
+				doc.Program = Arrayappend(p1,prog)
+				doc.TreatyNumber = Arrayappend(t1,t)
+				doc.PrilogenieNumber = Arrayappend(g1,g)
+				doc.Valid = Arrayappend(v1,v)
+				doc.BeginDate = Arrayappend(b1,b)
+				doc.EndDate = Arrayappend(e1,e)
+				doc.Comment = Arrayappend(c1,c)
+				'--- для статистики
+				Dim ld(1 To 5) As Variant 
+				ld(1) = doc.K_f(0)
+				ld(2) = doc.K_i(0)
+				ld(3) = doc.K_o(0)
+				ld(4) = doc.K_datar(0)
+				ld(5) = doc.K_n(0)
+				allocld db,pdoc,1,"5",ld		'прикрепление карта
+			End If
+		End If	
+	Next
+	Call uidoc.Reload 
+	uidoc.AutoReload =True
+	'Call doc.Save(True,False)
+	Call uidoc.refresh
+'--- для статистики
+	'alloc db,pdoc,1,"5"	'прикрепление карта
+	Exit Sub
+err_handle:  
+	Msgbox "Ошибка №" & Err() & " в строке " & Cstr(Erl()),16,"Ошибка! Обратитесь в cлужбу разработки"	
+	Dim tmpDoc As NotesDocument, ws As New NotesUIWorkspace
+	Set tmpDoc = Nothing
+	If Not ws.CurrentDocument.document Is Nothing Then 
+		Set tmpDoc = ws.CurrentDocument.document
+	End If
+	Call errh20(" Sub добавить программу ", tmpDoc ) ', "Ошибка в строке " + CStr(Erl))	
+	Exit Sub
+End Sub
