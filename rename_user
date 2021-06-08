@@ -1,0 +1,82 @@
+'change the last name of the doctor, as well as change the last name of the doctor on all current coupons
+
+Sub Click(Source As Button)
+	Dim doc As NotesDocument	
+	Dim view As NotesView
+	Dim col As NotesDocumentCollection 
+	Dim colT As NotesDocumentCollection 'коллекция по талонам
+	Dim ws As New NotesUIWorkspace
+	Dim ss As New NotesSession
+	Dim t As Variant
+	Dim x As Integer
+	Dim cc As String, cnt As Integer 
+	Dim skey As String 'для ключа
+	Dim db As NotesDatabase
+	
+	Dim NewFio As String
+	Dim oldFio As String
+	Set view = ss.Currentdatabase.Getview(ws.Currentview.Viewname)
+	Set col = ss.Currentdatabase.Unprocesseddocuments
+	If col.Count > 1 Then Msgbox "Выбрано больше 1 пользователя,нельзя переиминовать больше 1 пользователя" : Exit Sub
+	Set doc = col.Getfirstdocument()
+	
+	oldFio = doc.doctor(0) 'получим старую фамилию для дальнейшего поиска по коллекции талонов
+	'инпут бокс
+	
+	NewFio = Cstr(Inputbox("Введите новую фамилию : Пример: Степанов", "Для пользователя: " & doc.doctor(0) )) 'окнов ввода новой фамилии
+	
+	Stop
+	If Cstr(NewFio) = "" Then
+		Msgbox "Не введена новая фамилия"
+		Exit Sub
+	End If
+	
+	doc.DctSecondName = Cstr(NewFio) ' в одно поле добавили
+	
+'DctFullName ' полное имя бьем на массив
+	
+	t = Split(doc.DctFullName(0)," " , 3)
+	For x = 0 To 2
+		Fname$ = t(0) 'Фио
+		Fname$ = NewFio
+		Lname$ = t(1) 'Имя
+		Sname$ = t(2) 'Отчество
+	Next
+	
+	doc.DctFullName = Fname$ + " " + Lname$ + " " + Sname$
+	doc.doctor = 	Fname$ + " " + Lname$ + " " + Sname$
+	
+	Call doc.save(True, False)
+	
+	Msgbox "ФИО пользователя изменено на: " +  Fname$
+	
+	'2.2 найдем во вьюхе все документы по ключу фамилии, ключ проще наверное подсунуть в категорию и уже по категории пробежаться циклом.
+	
+	Set db = ss.CurrentDatabase
+	
+	Set view = db.GetView("(FioRenameDoctorTalon)") 
+	
+	skey = oldFio 'ключ по фио
+	
+	Print "Найдем все талоны по фамилии: " + Cstr(skey) 
+	
+	Set colT = view.GetAllDocumentsByKey(skey,True) 'только с точным совпадением
+	
+	Print Cstr(colT.Count) + ": count"
+	
+	Msgbox "Всего найдено талонов со старой фамилией: " + Cstr(colT.Count) + ".На этих талонах будет изменена фамилия."
+	
+	Dim docT As NotesDocument
+	
+	i = 1
+	For i = 1 To colT.Count
+		Set docT = colT.GetNthDocument(i) 
+		'Print "старое Фио на талоне: " + docT.doctor(0) +" №:" + Cstr(i)
+		docT.doctor = doc.doctor 	
+		Call docT.Save(True,False)
+		Print Cstr(i)	
+	Next
+	
+	Msgbox "Пользователь переиминован в МИС на: " + Cstr(doc.doctor(0)) + ".Фамилия на всех талонах врача так же переиминована"
+	
+End Sub
