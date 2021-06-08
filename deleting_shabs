@@ -1,0 +1,108 @@
+//deletes old copies of db templates after three months
+
+import lotus.domino.*;
+
+import java.util.ArrayList;
+
+/*
+ * Начинает удалять старые шаблоны через 3 месяца , чтобы не захламлять сервер.
+ */
+public class JavaAgent extends AgentBase {
+	
+	 public void NotesMain() {
+		
+		 try {
+	          Session session = getSession();
+	          AgentContext agentContext = session.getAgentContext();
+	        
+          // (Your code goes here)
+	          String server1 = "scz2/MSCH22";   //сюда прописать cцз2  
+	          
+	          ArrayList<String>myArrayList = new ArrayList<String>();
+        
+	       //получим сегодняшнюю дату   и откатим ее на 6 месяцев.
+         
+	          DateTime dt = session.createDateTime("Today");
+	          dt.getDateOnly();
+	          dt.adjustMonth(-3, true);
+	          System.out.println("Ищем шаблоны за:): " + 
+	        	      dt.getDateOnly());
+	          
+	        //Добавим базы в массив
+	          
+          myArrayList.add("setup.ntf");
+          myArrayList.add("price.ntf");
+          myArrayList.add("treaty.ntf");
+          myArrayList.add("amb.ntf");
+          myArrayList.add("shedule.ntf");
+          myArrayList.add("gp.ntf");
+          myArrayList.add("SendInfo.ntf");
+          myArrayList.add("Attach.ntf");
+          myArrayList.add("manuals.ntf");
+          myArrayList.add("manager.ntf");
+          myArrayList.add("AKM.ntf");
+          myArrayList.add("lab.ntf");
+          myArrayList.add("Dict.ntf");
+          myArrayList.add("scan.ntf");
+          myArrayList.add("mkb.ntf");
+          myArrayList.add("log.ntf");
+          myArrayList.add("lock.ntf");
+          myArrayList.add("bills.ntf");
+          myArrayList.add("ArjService.ntf");
+          
+          //Архивные бд
+          
+          myArrayList.add("ArchChek.ntf");
+          myArrayList.add("OldTalons.ntf");
+          myArrayList.add("arc_shedule.ntf");
+          myArrayList.add("bills_arc.ntf");
+          myArrayList.add("scan_arc.ntf");
+          
+          int n = 0;
+          
+          for (int i = 0; i < myArrayList.size(); i++) {
+        	  
+        	  String database =	dt.getDateOnly() + myArrayList.get(i); //name.split(".nsf")[0] + ".ntf"; dt.getDateOnly()
+        	
+        	  System.out.println("Имя базы: " + 
+        		  database);
+          
+        	  Database db = session.getDatabase(server1,database);
+       	  
+        	  String title = db.getTitle(); // получим тайтл
+
+        	  String name = db.getFileName(); // получим имя файла
+        
+        	  System.out.println("Имя базы: " + 
+        		  
+        			  db.getFileName() + " и " + database);
+        
+        	  if (db.isOpen()) 
+        		  
+          		if (db.getFileName().equals(database)) {
+          				
+          			System.out.println("Шаблон найден.Удалим");
+          				
+          			db.remove(); // Удаляем.
+          			
+          			n = n + 1; //счетаем кол-во удаленных
+          			
+          			db.recycle();
+          			
+          			
+          			System.out.println("Шаблон удален: " + database); //db.getFileName
+          		}
+          			else 
+          				System.out.println("Нет шаблона за указанную дату: " + dt.getDateOnly());
+          } ;
+         
+          System.out.println("Кол - во удаленных шаблонов: " + n); //db.getFileName
+           
+          dt.recycle();
+          session.recycle();
+         
+      } catch(Exception e) {
+          e.printStackTrace();
+       }
+   }
+}
